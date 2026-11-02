@@ -6,6 +6,13 @@ from dataclasses import dataclass
 import system, osenum, stub, diskutil, osinstall, asahi_firmware, m1n1, bugs
 from util import *
 
+if os.environ.get("WINM_INSTALL"):
+    import winm_install
+
+    workdir = os.environ.get("WINM_WORKDIR", os.path.expanduser("~/winm-work"))
+    sys.argv = ["winm-install", "--workdir", workdir, "interactive"]
+    sys.exit(winm_install.main())
+
 PART_ALIGN = psize("1MiB")
 
 STUB_SIZE = align_down(psize("2.5GB"), PART_ALIGN)
