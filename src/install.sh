@@ -46,13 +46,17 @@ exec </dev/tty >/dev/tty 2>/dev/tty
 WORKDIR="${WINM_WORKDIR:-$HOME/winm-work}"
 mkdir -p "$WORKDIR"
 
-INSTALLER_URL="https://raw.githubusercontent.com/hemu-create/winm/master/installer/winm_install.py"
+LOCAL_INSTALLER="$PWD/winm_install.py"
 INSTALLER="$WORKDIR/winm_install.py"
 
-if ! curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
-    "$INSTALLER_URL" -o "$INSTALLER"; then
-    echo "curl could not download the WinM installer; retrying with Python..."
-    python3 - "$INSTALLER_URL" "$INSTALLER" <<'PY'
+if [ -f "$LOCAL_INSTALLER" ]; then
+    cp "$LOCAL_INSTALLER" "$INSTALLER"
+else
+    INSTALLER_URL="https://raw.githubusercontent.com/hemu-create/winm/master/installer/winm_install.py"
+    if ! curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+        "$INSTALLER_URL" -o "$INSTALLER"; then
+        echo "curl could not download the WinM installer; retrying with Python..."
+        python3 - "$INSTALLER_URL" "$INSTALLER" <<'PY'
 import sys
 import urllib.request
 
@@ -60,6 +64,7 @@ url, output = sys.argv[1], sys.argv[2]
 with urllib.request.urlopen(url) as response, open(output, "wb") as handle:
     handle.write(response.read())
 PY
+    fi
 fi
 
 echo
