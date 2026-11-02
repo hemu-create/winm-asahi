@@ -48,22 +48,31 @@ mkdir -p "$WORKDIR"
 
 LOCAL_INSTALLER="$PWD/winm_install.py"
 INSTALLER="$WORKDIR/winm_install.py"
+CDN_URL="https://cdn.jsdelivr.net/gh/hemu-create/winm@master/installer/winm_install.py"
+RAW_URL="https://raw.githubusercontent.com/hemu-create/winm/master/installer/winm_install.py"
+
+download() {
+    curl --fail --silent --show-error --location \
+        --connect-timeout 5 --max-time 30 \
+        --proto '=https' --tlsv1.2 "$1" -o "$INSTALLER"
+}
 
 if [ -f "$LOCAL_INSTALLER" ]; then
     cp "$LOCAL_INSTALLER" "$INSTALLER"
 else
-    INSTALLER_URL="https://raw.githubusercontent.com/hemu-create/winm/master/installer/winm_install.py"
-    if ! curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
-        "$INSTALLER_URL" -o "$INSTALLER"; then
-        echo "curl could not download the WinM installer; retrying with Python..."
-        python3 - "$INSTALLER_URL" "$INSTALLER" <<'PY'
+    if ! download "$CDN_URL"; then
+        echo "CDN download failed; trying raw GitHub..." >&2
+        if ! download "$RAW_URL"; then
+            echo "curl failed; retrying with Python urllib..." >&2
+            python3 - "$RAW_URL" "$INSTALLER" <<'PY'
 import sys
 import urllib.request
 
 url, output = sys.argv[1], sys.argv[2]
-with urllib.request.urlopen(url) as response, open(output, "wb") as handle:
+with urllib.request.urlopen(url, timeout=30) as response, open(output, "wb") as handle:
     handle.write(response.read())
 PY
+        fi
     fi
 fi
 
