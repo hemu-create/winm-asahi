@@ -46,39 +46,20 @@ exec </dev/tty >/dev/tty 2>/dev/tty
 WORKDIR="${WINM_WORKDIR:-$HOME/winm-work}"
 mkdir -p "$WORKDIR"
 
-LOCAL_INSTALLER="$PWD/winm_install.py"
-INSTALLER="$WORKDIR/winm_install.py"
-CDN_URL="https://cdn.jsdelivr.net/gh/hemu-create/winm@master/installer/winm_install.py"
-RAW_URL="https://raw.githubusercontent.com/hemu-create/winm/master/installer/winm_install.py"
-
-download() {
-    curl --fail --silent --show-error --location \
-        --connect-timeout 5 --max-time 30 \
-        --proto '=https' --tlsv1.2 "$1" -o "$INSTALLER"
-}
-
-if [ -f "$LOCAL_INSTALLER" ]; then
-    cp "$LOCAL_INSTALLER" "$INSTALLER"
-else
-    if ! download "$CDN_URL"; then
-        echo "CDN download failed; trying raw GitHub..." >&2
-        if ! download "$RAW_URL"; then
-            echo "curl failed; retrying with Python urllib..." >&2
-            python3 - "$RAW_URL" "$INSTALLER" <<'PY'
-import sys
-import urllib.request
-
-url, output = sys.argv[1], sys.argv[2]
-with urllib.request.urlopen(url, timeout=30) as response, open(output, "wb") as handle:
-    handle.write(response.read())
-PY
-        fi
+if [ ! -f "$PWD/main.py" ]; then
+    if [ ! -d "$WORKDIR/winm-asahi/src" ]; then
+        echo "Cloning WinM installer..."
+        git clone --depth 1 https://github.com/hemu-create/winm-asahi.git "$WORKDIR/winm-asahi"
     fi
+    cd "$WORKDIR/winm-asahi/src"
 fi
 
+export WINM_INSTALL=1
+export WINM_WORKDIR="$WORKDIR"
+
 echo
-echo "Starting the WinM Windows installer wizard."
+echo "Starting the WinM Windows installer."
 echo "Nothing is changed until you explicitly confirm a step."
 echo
 
-exec python3 "$INSTALLER" --workdir "$WORKDIR" interactive
+exec python3 main.py
